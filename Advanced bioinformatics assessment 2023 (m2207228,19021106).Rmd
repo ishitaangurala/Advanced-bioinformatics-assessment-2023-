@@ -1,0 +1,339 @@
+---
+title: "Advanced bioinformatics 2023 assessment (m2207228, 19021106)"
+author: "2207228(SGUL) 19021106(KCL)"
+date: "2023-04-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## General R/Rstudio assessment 
+
+Task 1: Using the sum() function and : operator, write an expression in the code snippet to evaluate the sum of all integers between 5 and 55
+```{r}
+#3.1
+#creating a vector x to contain integer values between 5 and 55 specified by the : operator 
+x <- 5:55
+sum (x) #sum of the values in x
+```
+
+
+Task 2: Write a function called sumfun with one input parameter, called n, that calculates the sum of all integers between 5 and n. Use the function to do the calculation for n = 10, n = 20, and n = 100 and present the results.
+```{r}
+#3.2
+# creating sumfun as a function that takes the input n and gives the sum of all integers between 5 and the input numbers (10, 20 and 100)
+sumfun <- function(n) {sum(5:n)}
+sumfun (10)
+sumfun (20)
+sumfun (100)
+
+```
+
+
+Task 3: The famous Fibonacci series is calculated as the sum of the two preceding members of the sequence, where the first two steps in the sequence are 1, 1. Write an R script using a for loop to calculate and print out the first 12 entries of the Fibonacci series.
+```{r}
+#3.3
+#creating fibonacci as a function that holds numeric values 
+Fibonacci <-numeric (12)
+Fibonacci[1] <- Fibonacci [2] <-1 #to assign the first 2 elements of the fibonnaci series as 1,1 
+for (i in 3:12) Fibonacci[i] <- Fibonacci[i-2] + Fibonacci[i-1] #the for loop runs from the 3rd to the 12th element to give the sum of the two preceding members of the sequence
+print ("The first 12 entries of the Fibonacci series:")
+print (Fibonacci) #printing the fibonacci series as the loop runs
+
+```
+
+
+Task 4:With the mtcars dataset bundled with R, use ggplot to generate a box of miles per gallon (in the variable mpg) as a function of the number of gears (in the variable gear). Use the fill aesthetic to colour bars by number of gears.
+```{r}
+#3.4
+#using ggplot2
+library (ggplot2)
+#setting the dataset to mtcars, x axis as gear, y axis as miles per gallon(mpg), filling the boxplot bars as per number of gears 
+ggplot (data=mtcars, aes (x= as.factor(gear), y=mpg)) + geom_boxplot (aes(fill= as.factor(gear)))+ ggtitle ("Boxplot of miles per gallon (mpg) as a function of no. of gears")
+
+```
+
+Task 5: Using the cars dataset and the function lm, fit a linear relationship between speed and breaking distance in the variable distance.
+```{r}
+#3.5
+#creating y1 and x1 as variables to hold speed and data from the cars dataset respectively, then using lm to get the linear relationship of x1 over y1
+y1 <-cars $dist; x1 <-cars $speed; model <-lm (formula = "y1 ~ x1")
+summary (model)  #gives summary stats of the linear fit
+```
+
+
+Task 6: Use ggplot to plot the data points from Task 5 and the linear fit
+```{r}
+#3.6
+#plotting the datapoints from the previous task and the linear fit
+ggplot1 <- ggplot (data= cars, aes (x= speed, y=dist)) + geom_point() + geom_smooth(method = "lm",formula = "y ~ x") + ggtitle("Linear model of the relationship between breaking distance and speed") + xlab("speed(milesperhour)")+ ylab("dist(feet)")
+ggplot1
+
+```
+
+
+Task 7: Using the cars dataset, now use linear regression (lm) to estimate the average reaction time for the driver to start breaking (in seconds). Also use ggplot to plot the data points and the fitted relationship.
+```{r}
+#3.7
+# create dist_miles to hold the distance converted to miles from the cars dataset  
+dist_miles <- cars $dist* 0.000189
+# create speed_milesperhour to hold the square value of speed which is already in miles per hour 
+speed_milesperhour <- cars $speed^2
+#linear model
+lm (formula = dist_miles ~ speed_milesperhour)
+# create reac_time wich holds the time coverted from hour to  seconds (/3600) after the value of slope reaction_time is multiplied by 2 (as slope is equal to half the avg reaction time)
+reac_time <- (2.438e-05 *2)/3600
+#show the value of reaction time
+reac_time
+
+#load ggplot2
+library(ggplot2)
+#creating a regression model using the liner fitted model plotting speed_milesperhour over dist_miles from the cars dataset
+ggplot (data=cars, aes(speed_milesperhour, dist_miles)) + geom_point() + geom_smooth (method = "lm", formula = dist_miles ~ speed_milesperhour) + ggtitle ("Regression model between breaking distance and speed")
+
+```
+
+
+## RNA-seq assessment 
+
+Task 8: Read in count data and sample description
+```{r,eval=TRUE,echo=TRUE}
+#3.8
+#setting the working directory first using setwd()
+setwd("/Users/ishi10/Desktop/course")
+# Read input file with count data using the read.csv() function
+all_counts <- read.csv(file ="exercises/data/exercise1_counts.csv", row.names = 1)
+
+# Read input file with sample description using the read.csv() function
+sam_des <- read.table("exercises/data/exercise1_sample_description.info", sep = "\t", header = TRUE)
+
+```
+
+
+Task 9:Create col_data and check dimensions
+```{r,eval=TRUE,echo=TRUE}
+#3.9
+# Prepare data for DESeq
+#we make col_data where we input the sample, condition and batch columns from the sam_des file as a dataframe
+col_data <- data.frame(sample = sam_des$sample,
+                  condition = sam_des$condition,
+                  batch = sam_des$batch)
+
+# Storing the data as factors so that further analysis is easier
+col_data$sample <- as.factor(col_data$sample)
+col_data$condition <- as.factor(col_data$condition)
+col_data$batch <- as.factor(col_data$batch)
+
+# Check dimensions
+all(colnames(all_counts) == sam_des$sample)
+
+```
+
+
+Task 10:Construct DESeqDataSet object using count data and sample description.
+```{r,eval=TRUE,echo=TRUE}
+#3.10
+#making the DESeqDataSet object
+# Load DESeq2 library
+library(DESeq2)
+
+# Build DESeq dataset
+dds <- DESeqDataSetFromMatrix(countData =all_counts, colData = col_data, design = ~condition)
+
+# Apply DESeq normalization to the DESeq dataset to fot to the model and further statistical testing 
+dds <- DESeq(dds)
+
+```
+
+
+Task 11: Perform rlog and VST transformation on the data
+```{r, eval=TRUE,echo=TRUE}
+#3.11
+#to make it easier to work with our count data we use the transformed version where ther are converted to the log2 scale normalized to library size.
+# Regularized logarithm (rlog)
+rld <- rlog(dds)
+class(rld)
+
+# Get rld in count format
+rld_counts <- assay(rld)
+class(rld_counts)
+
+# Variance Stabilizing Transformation (rlog)- works in the same way as rlog but is faster and is used with longer datasets 
+vsd <- varianceStabilizingTransformation(dds)
+class(vsd)
+
+# Get vsd in count format
+vsd_counts <- assay(vsd)
+class(vsd_counts)
+
+```
+
+
+Task 12:Draw a heatmap of count matrix based on the top 40 highly expressed genes using rlog and VST data
+```{r, eval=TRUE,echo=TRUE}
+#3.12
+# Loading the pheatmap library to visualise the count matrix
+library("pheatmap")
+
+# Get dds normalized counts
+dds_counts <- counts(dds, normalized = TRUE)
+head(dds_counts)
+
+# Get normalized counts - 40 higher values where they are ordered in a decreasing order 
+select <- order(rowMeans(dds_counts), decreasing = TRUE)[1:40]
+#to display from  the top 
+head(select)
+
+# Heatmap of the rlog transformed data
+pheatmap(assay(rld)[select, ])
+
+# Heatmap of the vst transformed data
+pheatmap(assay(vsd)[select, ])
+
+```
+
+
+Task 13: Generate a SDM to see the clustering of count data.
+```{r, eval=TRUE,echo=TRUE}
+#3.13
+print("Sample Distance Matrix")
+#this is a useful way to study the clustering observed by checking for similarity across samples (ideally replicates should group together)
+# Compute SDM from rlog transformed data
+#we get sample to sample distances by using the dist function to the transpose of our count matrix
+sample_dist <- dist(t(assay(rld)))
+class(sample_dist)
+
+# Get SDM in matrix form
+sdm <- as.matrix(sample_dist)
+class(sdm)
+
+# Load library
+library("RColorBrewer")
+
+# Add row names for clear plot
+rownames(sdm) <- rld$condition
+colnames(sdm) <- NULL
+
+# Add colors
+colors <- colorRampPalette(rev(brewer.pal(9, "Blues")))(255)
+
+# Plot heatmap
+pheatmap(sdm,
+         clustering_distance_rows = sample_dist,
+         clustering_distance_cols = sample_dist,
+         col = colors)
+
+```
+
+
+Task 14:Perform the Principal Component Analysis using rlog method and find out the % significance values of first two principal components.
+```{r, eval=TRUE,echo=TRUE}
+#3.14
+# Principal Component Analysis
+print("Principal Component Analysis")
+# PCA plot on our rld (rlog(dds)) transformed data
+plotPCA(rld, intgroup = "condition")
+
+# Save figure
+library(ggplot2)
+ggsave(file = "figures/PCA_plot_rld.png")
+```
+
+
+Task 15: Repeat the PCA, this time using VST method and compare the plots with the ones obtained using rlog method.
+```{r, eval=TRUE,echo=TRUE}
+#3.15
+# PCA plot on our vsd (varianceStabilizingTransformation(dds)) transformed data
+plotPCA(vsd, intgroup = "condition")
+
+# Save figure 
+library(ggplot2)
+ggsave(file = "figures/PCA_plot_vst.png")
+
+```
+
+
+## ChIP-seq assessment 
+
+Task 16: Read in the two Myc Mel peakset replicates 
+```{r, eval=T, echo=T, warning=FALSE}
+#3.16
+#setting the working directory first using setwd()
+setwd("/Users/ishi10/Desktop/course 2")
+#loading the required libraries
+library(ChIPQC)
+library(DESeq2)
+
+#reading in the two myc mel peakset replicates to firstPeakSet and secondPeakSet respectively using ChIPQC fucntion GetGRanges as our input files are in the MACS format which is different from bed/bed6
+firstPeakSet <- ChIPQC:::GetGRanges("data/MacsPeaks/mycmelrep1_peaks.xls", sep="\t", simple=F)
+secondPeakSet <- ChIPQC:::GetGRanges("data/MacsPeaks/mycmelrep2_peaks.xls", sep="\t", simple=F)
+```
+
+Tak 16:create the common peakset as we did for our previous exercise
+```{r, eval=T, echo=T, warning=FALSE}
+#identifying common peaks in both replicates. creating allpeaks that holds both the first and second peaksets. 
+allPeaks <- c(firstPeakSet,secondPeakSet)
+#first we reduce the peaksets to one non-overlapping peakset to make analysis of peak presence in our samples more accurate. 
+allPeaksReduced <- reduce(allPeaks)
+#check length of allPeaks
+length(allPeaks)
+#check length of allPeaksReduced
+length(allPeaksReduced)
+
+#then using the reduced peakset to those overlapping peaks (using %over% command) in both the first and second replicate 
+commonPeaks <- allPeaksReduced[allPeaksReduced %over% firstPeakSet 
+                               & allPeaksReduced %over% secondPeakSet]
+#check length of commonPeaks
+length(commonPeaks)
+
+```
+
+
+Task 17:Now we can rank them by their fold enrichment, select the top 500 peaks and resize these peaks to 200bp around centre
+```{r, eval=T, echo=T, warning=FALSE}
+#to access the fold enrichment column in allPeaks which holds both our first and second peaksets and rank the top 10  
+foldEnrichment <- commonPeaks$fold_enrichment
+foldEnrichment[1:10]
+#a NULL value is returned as there in no fold enrichment column in the commonPeaks overlapping peakset that we created 
+
+#selecting to top 500 peaks and resizing them to 200bp around the centre. This done so that all of our peaks are of the same so that they do not get trimmed by Meme-ChIP. We also specify that the motif for the ChIP'd transcription factor is in the centre of teh peak.
+#peaksise resized to a common length (200bp)
+commonPeaks <- resize(commonPeaks,200,fix="center")
+#selecting the top 500 peaks 
+commonPeaks[1:500,]
+
+```
+
+
+Task 18:Extract the sequences underneath the file and write them to FASTA file in you working directory. Inspect the file in notepad.
+```{r,eval=T, echo=T, warning=FALSE}
+#to investigate motifs enriched under peaks using Meme-ChIP which requires a FASTA input file 
+#therefore to extract sequences under peaks and create a FASTA we use the BSgenome package 
+library(BSgenome)
+#loading the object for the mouse genome for which we are working on 
+library(BSgenome.Mmusculus.UCSC.mm9)
+genome <- BSgenome.Mmusculus.UCSC.mm9
+#ensuring that chr names and styles in our commonPeaks matches that in UCSC
+seqlevelsStyle(commonPeaks) <- "UCSC"
+
+#using the getseq function with the Granges of our resized common peaks and the mouse genome as it returns the DNAStringSet object which contains the sequences under the common peakset.
+commonPeaksSequences <- getSeq(genome,GRanges(commonPeaks))
+names(commonPeaksSequences) <- paste0("peak_",seqnames(commonPeaks),"_",
+                                       start(commonPeaks),
+                                         "-",
+                                         end(commonPeaks))
+
+#for the top 500 peaks
+commonPeaksSequences[1:500,]
+
+#then we write the DNAStringSet object out to a FASTA file using the writeXStringSet function
+writeXStringSet(commonPeaksSequences,file="consensusPeaks.fa")
+#This FASTA file is uploaded to Meme-ChIP to identify de-novo motifs as it contains sequences resized around the centre of peaks. 
+```
+
+
+Task 19:Upload the sequences to Meme-ChIP and report the results when complete.
+Link to results provided in the word document 
